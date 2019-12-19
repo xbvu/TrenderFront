@@ -45,7 +45,6 @@
         .checkbox-menu li.active label:focus {
             background-color: #b8b8ff;
         }
-
     </style>
 </head>
 
@@ -68,7 +67,7 @@
                                         <div class="input-group">
                                             <input type="text" class="form-control" placeholder="Search" id="txtSearch" />
                                             <div class="input-group-btn">
-                                                <button class="btn btn-primary" type="submit">
+                                                <button class="btn btn-primary" type="submit" id="primaryButton">
                                                     <span class="glyphicon glyphicon-search"></span>
                                                 </button>
                                             </div>
@@ -89,7 +88,6 @@
                                                     $(function() {
                                                         $('#datetimepicker1').datetimepicker();
                                                     });
-
                                                 </script>
                                             </div>
                                             <div class="col-xs-6">
@@ -106,7 +104,6 @@
                                                     $(function() {
                                                         $('#datetimepicker2').datetimepicker();
                                                     });
-
                                                 </script>
                                             </div>
                                         </div>
@@ -115,7 +112,7 @@
                                                 <label class="control-label">Time interval</label>
                                                 <div class="dropdown">
                                                     <button class="btn btn-block btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                                        Interval
+                                                        Select time interval
                                                         <span class="caret"></span>
                                                     </button>
                                                     <ul class="dropdown-menu" aria-labelledby="dropdownMenu1">
@@ -128,7 +125,7 @@
                                                 <label class="control-label">Source selection</label>
                                                 <div class="dropdown">
                                                     <button class="btn btn-block btn-default dropdown-toggle" type="button" id="dropdownMenu1" data-toggle="dropdown" aria-haspopup="true" aria-expanded="true">
-                                                        Source(s)
+                                                        Select source
                                                         <span class="caret"></span>
                                                     </button>
                                                     <ul class="dropdown-menu checkbox-menu allow-focus" aria-labelledby="dropdownMenu1">
@@ -166,34 +163,157 @@
     </div>
 
     <script>
+        /*        const form = document.getElementById("contactform");
+        form.onsubmit = () => {
+            var xhr = new XMLHttpRequest();
+            var formData = new FormData(form);
+            xhr.open('POST', 'https:...');
+            xhr.send(formData);
+            xhr.onreadystatechange = () => {
+                if (this.readyState === 4 && this.status === 200) {
+                    showResponse(this.response);
+                }
+            };
+            xhr.onerror = () => {
+                showResponse("0");
+            };
+            return false;
+    };*/
+        const button = document.getElementById("primaryButton");
+        const inputField = document.getElementById("txtSearch");
+        button.onclick = () => {
+            var xhr = new XMLHttpRequest();
+            //var formData = new FormData(form);
+            var params = "search_term=" + inputField.value;
+            var self = this;
+            xhr.onreadystatechange = function() {
+                if (this.readyState == 4 && this.status == 200) {
+                    console.log(this.responseText);
+                    processData(this.responseText);
+                    //self.JSONtoJS(this.responseText);
+                }
+            };
+
+            xhr.open('POST', "http://45.32.184.69:8080/api/search", true);
+            xhr.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xhr.send(params);
+        };
+
+
+
+        function processData(requestResult) {
+            var numberOfDays = 7;
+            var today = new Date().setHours(0, 0, 0, 0);
+            var days = []
+            for (var i = 0; i < numberOfDays; i++) {
+                var currentDay = today - (86400000 * i);
+                var dayInList = [];
+
+                dayInList.push(currentDay);
+                dayInList.push(0);
+                days.push(dayInList);
+
+            }
+
+            var myStringArray = JSON.parse(requestResult); //[{"search_scope":"null","search_term":"bitcoin","timestamp":1576688300},{"search_scope":"null","search_term":"bitcoin","timestamp":1576689300}];
+            console.log("myStringArray:   " + myStringArray);
+            var innerArrayLength = myStringArray.length;
+            var arrayLength = days.length;
+            console.log("innerArrayLength:   " + innerArrayLength);
+            for (var i1 = 0; i1 < arrayLength; i1++) {
+                console.log(i1);
+                for (var i2 = 0; i2 < innerArrayLength; i2++) {
+                    console.log(i2);
+                    var currDayInDays = days[i1][0];
+                    var currDayInResponse = new Date(myStringArray[i2]["timestamp"] * 1000).setHours(0, 0, 0, 0);
+                    console.log("currDayInDays: " + currDayInDays);
+                    console.log("currDayInResponse: " + currDayInResponse);
+                    console.log();
+                    if (currDayInDays === currDayInResponse) {
+                        console.log("equal");
+                        days[i1][1] += 1;
+                    }
+
+                }
+                var month = new Date(days[0][0]).getMonth() + 1;
+                console.log(month);
+                var day = new Date(days[0][0]).getUTCDate() + 1;
+                console.log(day);
+                console.log(new Date(days[0][0]));
+
+                var labelsCharts = [];
+                var valuesCharts = [];
+                //removeData(myChart);
+                for (var i3 = 0; i3 < arrayLength; i3++) {
+                    var month = new Date(days[i3][0]).getMonth() + 1;
+                    var day = new Date(days[i3][0]).getUTCDate() + 1;
+                    var newLabel = "";
+                    newLabel = newLabel + month + " / " + day;
+                    labelsCharts[i3] = newLabel;
+                    valuesCharts[i3] = days[i3][1];
+                    //addData(myChart, newLabel, days[i3][1]);
+                }
+                addData(myChart, labelsCharts, valuesCharts);
+            }
+
+
+        }
+
+        function addData(chart, labels, dataList) {
+            chart.data.datasets.splice(0, 1);
+            chart.data.labels = labels;
+
+            var newDataset = {
+                label: '# of Mentions',
+                data: dataList,
+                backgroundColor: ['rgba(255, 99, 132, 0.05)', ],
+                borderColor: ['rgba(255, 99, 132, 1)', ],
+                borderWidth: 3
+            };
+
+            chart.data.datasets.push(newDataset);
+
+            chart.update();
+        }
+
+        function removeData(chart) {
+            chart.data.labels = [];
+            chart.data.datasets.forEach((dataset) => {
+                dataset.data = [];
+            });
+            chart.update();
+        }
+
+        var cNumberOfDays = 7;
+        var cToday = new Date().setHours(0, 0, 0, 0);
+        var cDays = []
+        for (var i = 0; i < cNumberOfDays; i++) {
+            var cCurrentDay = cToday - (86400000 * i);
+
+            var month = new Date(cCurrentDay).getMonth() + 1;
+            var day = new Date(cCurrentDay).getUTCDate() + 1;
+            var newLabel = "";
+            newLabel = newLabel + month + " / " + day;
+            cDays.push(newLabel);
+
+        }
+
         var ctx = document.getElementById('myChart').getContext('2d');
         var myChart = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: ['12/11', '12/12', '12/13', '12/14', '12/15', '12/16', '12/17'],
+                labels: cDays,
                 datasets: [{
-                        label: '# of Mentions',
-                        data: [12, 19, 3, 5, 2, 3, 4],
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.05)',
-                        ],
-                        borderColor: [
-                            'rgba(255, 99, 132, 1)',
-                        ],
-                        borderWidth: 3
-                    },
-                    {
-                        label: 'relative price fluctuation',
-                        data: [11, 18, 4, 8, 4, 4, 3],
-                        backgroundColor: [
-                            'rgba(54, 162, 235, 0.0)',
-                        ],
-                        borderColor: [
-                            'rgba(54, 162, 235, 1)',
-                        ],
-                        borderWidth: 3
-                    }
-                ]
+                    label: '# of Mentions',
+                    data: [0, 0, 0, 0, 0, 0, 0],
+                    backgroundColor: [
+                        'rgba(255, 99, 132, 0.05)',
+                    ],
+                    borderColor: [
+                        'rgba(255, 99, 132, 1)',
+                    ],
+                    borderWidth: 3
+                }]
             },
             options: {
                 scales: {
@@ -203,9 +323,12 @@
                         }
                     }]
                 }
+            },
+            animation: {
+                animateRotate: true,
+                animateScale: true,
             }
         });
-
     </script>
     <script>
         $(".checkbox-menu").on("change", "input[type='checkbox']", function() {
@@ -215,7 +338,6 @@
         $(document).on('click', '.allow-focus', function(e) {
             e.stopPropagation();
         });
-
     </script>
 </body>
 
